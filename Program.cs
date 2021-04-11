@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace surface_roughness {
-    
+
 
 
     class Program {
@@ -17,9 +17,8 @@ namespace surface_roughness {
         public static List<Measurement> AllMeasurements { get; set; } = new List<Measurement>();
         public static List<Test> AllTests { get; set; } = new List<Test>();
         public static void Main(string[] args) {
-            int startup_error = StartupCheck(args);
-            if (startup_error != 0) {
-                return;
+            while (!StartupCheck()) {
+                StartupCheck();
             }
             // Get and parse the tests from the database in a list of concrete models
             AllTests = LoadTests();
@@ -32,15 +31,15 @@ namespace surface_roughness {
             }
 
             //Console.WriteLine("Z(Z(1)) from 0 -> 100 is: "+Sigma(0,1000-1,Sigma(0, 1000-1, 1)));
-            
+
             DoStats();
-            Console.ReadKey();
+            
         }
 
         public static void DoStats() {
             var lines = new List<string>();
             lines.Add("test_uid,time,plane,operator,min_height,min_height_x,min_height_y,max_height,max_height_x,max_height_y,mean,range,roughness,roughness_squared");
-            foreach(Test t in AllTests) {
+            foreach (Test t in AllTests) {
 
                 Console.WriteLine($"Test #{t.test_uid}: \n");
                 if (t.Measurements.Count < 1000) {
@@ -60,29 +59,30 @@ namespace surface_roughness {
                     double range = t.MeasurementRange();
                     double roughness = t.MeasurementAverageRoughness();
                     double roughness_sqrd = t.MeasurementRootMeanSquareRoughness();
-                    
+
                     lines.Add($"{t.test_uid},{t.sTime},{t.PlaneID},{t.Operator},{min_value},{min_x},{min_y},{max_value},{max_x},{max_y},{avg},{range},{roughness},{roughness_sqrd}");
-                    
-                        Console.WriteLine(
-                        $"Min height: {min_value}mm @ ({min_x},{min_y})\n" +
-                        $"Max height: {max_value}mm @ ({max_x},{max_y})\n" +
-                        $"Mean height: {avg}mm\n" +
-                        $"Height range: {range}mm\n" +
-                        $"Avg roughness: {roughness}mm\n" +
-                        $"Avg Root mean suqare roughness: {roughness_sqrd}mm\n");
+
+                    Console.WriteLine(
+                    $"Min height: {min_value}mm @ ({min_x},{min_y})\n" +
+                    $"Max height: {max_value}mm @ ({max_x},{max_y})\n" +
+                    $"Mean height: {avg}mm\n" +
+                    $"Height range: {range}mm\n" +
+                    $"Avg roughness: {roughness}mm\n" +
+                    $"Avg Root mean suqare roughness: {roughness_sqrd}mm\n");
                 }
             }
-
-            File.WriteAllLines(Path.Combine(WORKING_DIRECTORY,"summary_report.csv"), lines.ToArray());
+            string output = Path.Combine(WORKING_DIRECTORY, "summary_report.csv");
+            File.WriteAllLines(output, lines.ToArray());
+            Console.WriteLine("\nFinished. Saved summary report to: " + output);
         }
 
         public static List<Measurement> LoadMeasurements() {
-            var data = SQLGetColumns("Measurements","measurement_uid", "test_uid", "x", "y", "height");
+            var data = SQLGetColumns("Measurements", "measurement_uid", "test_uid", "x", "y", "height");
             var measurements = new List<Measurement>();
             foreach (object[] entry in data) {
                 Measurement m = new Measurement(
-                    (long) entry[0],
-                    (long) entry[1],
+                    (long)entry[0],
+                    (long)entry[1],
                     (double)entry[2],
                     (double)entry[3],
                     (double)entry[4]);
@@ -106,37 +106,29 @@ namespace surface_roughness {
             return tests;
         }
 
-        public static int StartupCheck(string[] args) {
-            if (args == null) {
-                Console.Write("Cannot have a null database path.");
-                return 1;
-            }
-            if (args.Length == 0) {
-                Console.Write("Please specify a path to the database to analyze.");
-                return 1;
-            }
-            if (args.Length > 1) {
-                Console.Write("Please only specify one path to the database to analyze.");
-                return 1;
+        public static bool StartupCheck() {
+            Console.Write("Enter a full path for a database as input: ");
+            string input = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input)) {
+                Console.Write("You didn't provide a response. ");
+                return false;
             }
 
-            input_file = args[0];
-
-            
+            input_file = input;
 
             if (!File.Exists(input_file)) {
-                Console.Write("The database you specified does not exist.");
-                return 1;
+                Console.Write("This is not a valid path to a database. ");
+                return false;
             }
 
-            return 0;
+            return true;
         }
 
-        
 
-        public static double Sigma(int lower_bound,int upper_bound,double expression_value) {
+
+        public static double Sigma(int lower_bound, int upper_bound, double expression_value) {
             double sum = 0;
-            for(int i=lower_bound;i<=upper_bound;i++) {
+            for (int i = lower_bound; i <= upper_bound; i++) {
                 sum += expression_value;
             }
             return sum;
@@ -178,16 +170,16 @@ namespace surface_roughness {
 
         public static string ColumnsToStringList(params string[] columns) {
             string text = "";
-            for(int i=0;i<columns.Length;i++) {
+            for (int i = 0; i < columns.Length; i++) {
                 text += columns[i];
-                if (i < columns.Length-1) {
+                if (i < columns.Length - 1) {
                     text += ",";
                 }
             }
 
             return text;
         }
-       
+
 
     }
 }
