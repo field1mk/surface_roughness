@@ -29,8 +29,9 @@ namespace surface_roughness {
         /// </summary>
         public static List<Test> AllTests { get; set; } = new List<Test>();
         public static void Main(string[] args) {
-            while (!StartupCheck()) {
-                StartupCheck();
+            var success = false;
+            while (!success) {
+                success = StartupCheck();
             }
             // Get and parse the tests from the database in a list of concrete models
             AllTests = LoadTests();
